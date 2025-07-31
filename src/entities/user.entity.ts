@@ -14,10 +14,10 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ charset: 'utf8mb4', collation: 'utf8mb4_unicode_ci' })
   firstName: string;
 
-  @Column()
+  @Column({ charset: 'utf8mb4', collation: 'utf8mb4_unicode_ci' })
   lastName: string;
 
   @Column({ nullable: true })
