@@ -1,0 +1,48 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-auth-test:latest
+
+      - name: Deploy on VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/user-auth-test:latest
+            docker stop user-auth-test || true
+            docker rm user-auth-test || true
+            mkdir -p /home/${{ secrets.VPS_USER }}/user-auth
+            echo "${{ secrets.ENV }}" > /home/${{ secrets.VPS_USER }}/user-auth/.env
+            docker run -d --name user-auth-test --env-file /home/${{ secrets.VPS_USER }}/user-auth/.env -p 4000:4000 ${{ secrets.DOCKERHUB_USERNAME }}/user-auth-test:latest
+
+      - name: Notify success
+        run: echo "🚀 Deploy to VPS was successful!"
