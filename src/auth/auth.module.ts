@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { GoogleStrategy } from '../strategy/google.strategy';
 import { JwtStrategy } from '../strategy/jwt.strategy';
 import { UserModule } from '../user/user.module';
+import { GoogleSwaggerCodeDecodeMiddleware } from '../guards/google-swagger-code-decode.middleware';
 
 @Module({
   imports: [
@@ -27,4 +28,10 @@ import { UserModule } from '../user/user.module';
   providers: [AuthService, GoogleStrategy, JwtStrategy],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(GoogleSwaggerCodeDecodeMiddleware)
+      .forRoutes({ path: 'auth/google/callback', method: RequestMethod.GET });
+  }
+}

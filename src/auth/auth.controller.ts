@@ -9,6 +9,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AuthResponseDto, UserProfileDto } from './dto/auth-response.dto';
 
@@ -29,34 +30,24 @@ export class AuthController {
   async googleAuth(@Req() req) {}
 
   // Google OAuth2 callback
-  @Get('google/redirect')
+  @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({ summary: 'Google OAuth2 callback' })
+  @ApiOperation({
+    summary: 'Google OAuth2 callback',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Login successful',
-    type: AuthResponseDto,
+    description: 'Login successful, returns access_token and user info',
   })
   @ApiResponse({ status: 500, description: 'Authentication failed' })
-  async googleAuthRedirect(
-    @Req() req: AuthenticatedRequest,
-    @Res() res: Response,
-  ) {
-    try {
-      const result = await this.authService.login(req.user);
-
-      return res.json({
-        message: 'Login successful',
-        ...result,
-      });
-
-      // return res.redirect(`${process.env.CLIENT_URL}?token=${result.access_token}`);
-    } catch (error) {
-      return res.status(500).json({
-        message: 'Authentication failed',
-        error: error.message,
-      });
-    }
+  @ApiQuery({
+    name: 'code',
+    required: true,
+    description: 'Authorization code returned by Google',
+    type: String,
+  })
+  async googleAuthRedirect(@Req() req: AuthenticatedRequest) {
+    return this.authService.login(req.user);
   }
 
   @Get('me')
